@@ -1,0 +1,27 @@
+name: python-ci pipeline
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '**.py'
+
+
+jobs:
+  python_checks:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: checkout repo
+      uses: actions/checkout@v4
+    
+    - name: install dependencies
+      run: pip install isort==7.0.0 flake8==7.3.0
+
+    - name: run isort
+      run: isort --check-only .
+
+    - name: run flake8
+      run: flake8 .
+  
