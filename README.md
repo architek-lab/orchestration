@@ -16,7 +16,6 @@
     - For WSL: [download](https://sourceforge.net/projects/aws-vault.mirror/) the binary file
     - Move it to linux path: `mv <path/to/downloaded/binary-file> /usr/local/bin/aws-vault`
     - Add permission to make it executable.
-        - 
         - confirm installation: `aws-vault list`
         - If there is an error to specify keychain ring, set the *backend-secret=file* and append to bash profile
             - `export AWS_VAULT_BACKEND=file >> ~/.bashrc`
