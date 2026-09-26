@@ -1,21 +1,4 @@
-"""
-Google Sheets test — credentials pulled from AWS SSM Parameter Store
-(SecureString), not a local JSON file. This is the "real" way described in
-the earlier test scripts' docstrings.
 
-Requires (in .env or environment):
-    PROCUREMENT_SHEET_ID
-    GOOGLE_SERVICE_ACCOUNT_SSM_PATH   e.g. /architek/service-account/credentials
-    AWS_ACCESS_KEY_ID
-    AWS_SECRET_ACCESS_KEY
-    AWS_DEFAULT_REGION                e.g. eu-central-1
-
-The SSM parameter must contain the full service-account JSON as its value
-(the same content as the .json key file you downloaded from Google Cloud).
-
-Usage:
-    python test_google_sheet_ssm.py
-"""
 
 import io
 import json
@@ -52,7 +35,9 @@ def load_google_credentials_from_ssm() -> Credentials:
         sys.exit(1)
 
     print(
-        f"Fetching Google credentials from SSM: {SSM_PATH} (region={AWS_REGION})...")
+        f"Fetching Google credentials from SSM: {SSM_PATH} "
+        f"(region={AWS_REGION})..."
+    )
     ssm = boto3.client("ssm", region_name=AWS_REGION)
 
     try:
@@ -66,7 +51,10 @@ def load_google_credentials_from_ssm() -> Credentials:
     try:
         service_account_info = json.loads(raw_value)
     except json.JSONDecodeError:
-        print("ERROR: SSM parameter value is not valid JSON — check what's stored there.")
+        print(
+            "ERROR: SSM parameter value is not valid JSON — "
+            "check what's stored there."
+        )
         sys.exit(1)
 
     print("Google credentials loaded from SSM.")
@@ -82,7 +70,10 @@ def main():
     creds = load_google_credentials_from_ssm()
     drive_service = build("drive", "v3", credentials=creds)
     print(f"Authenticated as: {creds.service_account_email}")
-    print("(If you get a 404 below, share the sheet with this email as Viewer.)")
+    print(
+        "(If you get a 404 below, share the sheet with this "
+        "email as Viewer.)"
+    )
 
     print(f"\nFetching sheet {SPREADSHEET_ID}...")
     request = drive_service.files().export_media(

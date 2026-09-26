@@ -1,4 +1,3 @@
-
 import io
 import json
 import logging
@@ -40,7 +39,8 @@ def clean_column_names(columns):
 
 
 def load_google_credentials() -> Credentials:
-    """Pull the service-account JSON from AWS SSM Parameter Store and build Credentials from it."""
+    """Pull the service-account JSON from AWS SSM Parameter Store and
+    build Credentials from it."""
     ssm = boto3.client("ssm", region_name=AWS_REGION)
     response = ssm.get_parameter(
         Name=GOOGLE_SERVICE_ACCOUNT_SSM_PATH,
@@ -98,12 +98,16 @@ def extract_google_sheet(debug_print: bool = False) -> list:
     if not GOOGLE_SERVICE_ACCOUNT_SSM_PATH:
         logger.warning(
             "GOOGLE_SERVICE_ACCOUNT_SSM_PATH not set — running "
-            "extract_google_sheet in placeholder mode, nothing fetched or landed.")
+            "extract_google_sheet in placeholder mode, nothing "
+            "fetched or landed."
+        )
         return []
 
     if not SPREADSHEET_ID:
         raise ValueError(
-            "PROCUREMENT_SHEET_ID not set — refusing to run without a sheet to pull")
+            "PROCUREMENT_SHEET_ID not set — refusing to run "
+            "without a sheet to pull"
+        )
 
     if not S3_BUCKET:
         raise ValueError(

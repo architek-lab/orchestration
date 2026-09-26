@@ -1,5 +1,3 @@
-
-
 # required import
 import io
 import logging
@@ -58,7 +56,8 @@ def list_remote_files(sftp) -> list:
 
 
 def stream_file_to_s3(sftp, s3, filename: str, run_date: datetime) -> str:
-    """Stream directly from SFTP into S3 — no temp files on the worker's disk."""
+    """Stream directly from SFTP into S3 — no temp files on the
+    worker's disk."""
     category = categorize_file(filename)
     date_str = run_date.strftime("%Y-%m-%d")
     key = f"{S3_RAW_PREFIX}/{category}/dt={date_str}/{filename}"
