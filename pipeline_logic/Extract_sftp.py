@@ -80,7 +80,7 @@ def extract_sftp() -> list:
     """
     run_date = datetime.now(timezone.utc)
 
-    # RHINEOPS_SFTP_HOST 
+    # RHINEOPS_SFTP_HOST
     if not SFTP_HOST:
         logger.warning(
             "RHINEOPS_SFTP_HOST not set — running extract_sftp in placeholder "
@@ -89,7 +89,8 @@ def extract_sftp() -> list:
         return []
 
     if not S3_BUCKET:
-        raise ValueError("S3_BUCKET not set — refusing to run without a destination bucket")
+        raise ValueError(
+            "S3_BUCKET not set — refusing to run without a destination bucket")
 
     logger.info("Starting SFTP extraction: RhineOps nightly files")
     sftp, transport = connect_sftp()
@@ -98,7 +99,8 @@ def extract_sftp() -> list:
     try:
         filenames = list_remote_files(sftp)
         if not filenames:
-            raise ValueError("No files found on RhineOps SFTP — refusing an empty run")
+            raise ValueError(
+                "No files found on RhineOps SFTP — refusing an empty run")
 
         keys = [stream_file_to_s3(sftp, s3, f, run_date) for f in filenames]
     finally:

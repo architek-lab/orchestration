@@ -51,7 +51,8 @@ def load_google_credentials_from_ssm() -> Credentials:
         print("ERROR: GOOGLE_SERVICE_ACCOUNT_SSM_PATH not found in .env")
         sys.exit(1)
 
-    print(f"Fetching Google credentials from SSM: {SSM_PATH} (region={AWS_REGION})...")
+    print(
+        f"Fetching Google credentials from SSM: {SSM_PATH} (region={AWS_REGION})...")
     ssm = boto3.client("ssm", region_name=AWS_REGION)
 
     try:
@@ -69,7 +70,8 @@ def load_google_credentials_from_ssm() -> Credentials:
         sys.exit(1)
 
     print("Google credentials loaded from SSM.")
-    return Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
+    return Credentials.from_service_account_info(
+        service_account_info, scopes=SCOPES)
 
 
 def main():

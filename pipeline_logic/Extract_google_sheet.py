@@ -42,9 +42,12 @@ def clean_column_names(columns):
 def load_google_credentials() -> Credentials:
     """Pull the service-account JSON from AWS SSM Parameter Store and build Credentials from it."""
     ssm = boto3.client("ssm", region_name=AWS_REGION)
-    response = ssm.get_parameter(Name=GOOGLE_SERVICE_ACCOUNT_SSM_PATH, WithDecryption=True)
+    response = ssm.get_parameter(
+        Name=GOOGLE_SERVICE_ACCOUNT_SSM_PATH,
+        WithDecryption=True)
     service_account_info = json.loads(response["Parameter"]["Value"])
-    return Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
+    return Credentials.from_service_account_info(
+        service_account_info, scopes=SCOPES)
 
 
 def fetch_sheet_as_dataframe() -> pd.DataFrame:
@@ -90,20 +93,21 @@ def extract_google_sheet(debug_print: bool = False) -> list:
     for local testing, not used when this runs unattended in the pipeline.
     """
     run_date = datetime.now(timezone.utc)
-   
+
     # connection
     if not GOOGLE_SERVICE_ACCOUNT_SSM_PATH:
         logger.warning(
             "GOOGLE_SERVICE_ACCOUNT_SSM_PATH not set — running "
-            "extract_google_sheet in placeholder mode, nothing fetched or landed."
-        )
+            "extract_google_sheet in placeholder mode, nothing fetched or landed.")
         return []
 
     if not SPREADSHEET_ID:
-        raise ValueError("PROCUREMENT_SHEET_ID not set — refusing to run without a sheet to pull")
+        raise ValueError(
+            "PROCUREMENT_SHEET_ID not set — refusing to run without a sheet to pull")
 
     if not S3_BUCKET:
-        raise ValueError("S3_BUCKET not set — refusing to run without a destination bucket")
+        raise ValueError(
+            "S3_BUCKET not set — refusing to run without a destination bucket")
 
     logger.info("Starting extraction: procurement Google Sheet")
     df = fetch_sheet_as_dataframe()
