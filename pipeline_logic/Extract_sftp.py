@@ -1,11 +1,9 @@
-
-
-# required import
 import io
-import os
 import logging
+import os
 from datetime import datetime, timezone
 
+import awswrangler as wr
 import boto3
 import paramiko
 from dotenv import load_dotenv
@@ -28,6 +26,7 @@ SFTP_REMOTE_DIR = os.getenv("RHINEOPS_SFTP_REMOTE_DIR", "/outbound")
 
 S3_BUCKET = os.getenv("S3_BUCKET")
 S3_RAW_PREFIX = "raw/sftp"
+AWS_REGION = os.getenv("AWS_DEFAULT_REGION", os.getenv("AWS_REGION"))
 
 FILE_CATEGORY_MAP = {
     "shipment": "shipments",
@@ -57,30 +56,29 @@ def list_remote_files(sftp) -> list:
     return files
 
 
-def stream_file_to_s3(sftp, s3, filename: str, run_date: datetime) -> str:
-    """Stream directly from SFTP into S3 — no temp files on the worker's disk."""
+def stream_file_to_s3(sftp, session, filename: str, run_date: str) -> str:
+    """Stream directly from SFTP into S3"""
     category = categorize_file(filename)
-    date_str = run_date.strftime("%Y-%m-%d")
-    key = f"{S3_RAW_PREFIX}/{category}/dt={date_str}/{filename}"
+    s3_path = (
+        f"s3://{S3_BUCKET}/{S3_RAW_PREFIX}/"
+        f"{category}/dt={run_date}/{filename}"
+    )
 
-    remote_path = f"{SFTP_REMOTE_DIR}/{filename}"
     buffer = io.BytesIO()
-    sftp.getfo(remote_path, buffer)
+    sftp.getfo(f"{SFTP_REMOTE_DIR}/{filename}", buffer)
     buffer.seek(0)
 
-    s3.put_object(Bucket=S3_BUCKET, Key=key, Body=buffer.getvalue())
-    logger.info(f"Landed {filename} to s3://{S3_BUCKET}/{key}")
-    return key
+    wr.s3.upload(local_file=buffer, path=s3_path, boto3_session=session)
+    logger.info(f"Landed {filename} to {s3_path}")
+    return s3_path
 
 
-def extract_sftp() -> list:
+def extract_sftp(run_date: str) -> list:
     """
-    Runs the full extraction: connect to RhineOps' SFTP, pull every file found,
-    land each to S3. Returns the list of S3 keys that were written.
+    Runs the full extraction: connect to RhineOps' SFTP, pull every file
+    found, land each to S3. 
     """
-    run_date = datetime.now(timezone.utc)
-
-    # RHINEOPS_SFTP_HOST 
+    # RHINEOPS_SFTP_HOST
     if not SFTP_HOST:
         logger.warning(
             "RHINEOPS_SFTP_HOST not set — running extract_sftp in placeholder "
@@ -89,18 +87,22 @@ def extract_sftp() -> list:
         return []
 
     if not S3_BUCKET:
-        raise ValueError("S3_BUCKET not set — refusing to run without a destination bucket")
+        raise ValueError(
+            "S3_BUCKET not set — refusing to run without a destination bucket")
 
     logger.info("Starting SFTP extraction: RhineOps nightly files")
+    session = boto3.Session(region_name=AWS_REGION)
     sftp, transport = connect_sftp()
-    s3 = boto3.client("s3")
 
     try:
         filenames = list_remote_files(sftp)
         if not filenames:
-            raise ValueError("No files found on RhineOps SFTP — refusing an empty run")
+            raise ValueError(
+                "No files found on RhineOps SFTP — refusing an empty run")
 
-        keys = [stream_file_to_s3(sftp, s3, f, run_date) for f in filenames]
+        keys = [
+            stream_file_to_s3(sftp, session, f, run_date) for f in filenames
+        ]
     finally:
         sftp.close()
         transport.close()
@@ -109,4 +111,5 @@ def extract_sftp() -> list:
 
 
 if __name__ == "__main__":
-    extract_sftp()
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    extract_sftp(today)

@@ -1,21 +1,3 @@
-"""
-Google Sheets test — credentials pulled from AWS SSM Parameter Store
-(SecureString), not a local JSON file. This is the "real" way described in
-the earlier test scripts' docstrings.
-
-Requires (in .env or environment):
-    PROCUREMENT_SHEET_ID
-    GOOGLE_SERVICE_ACCOUNT_SSM_PATH   e.g. /architek/service-account/credentials
-    AWS_ACCESS_KEY_ID
-    AWS_SECRET_ACCESS_KEY
-    AWS_DEFAULT_REGION                e.g. eu-central-1
-
-The SSM parameter must contain the full service-account JSON as its value
-(the same content as the .json key file you downloaded from Google Cloud).
-
-Usage:
-    python test_google_sheet_ssm.py
-"""
 
 import sys
 import io
