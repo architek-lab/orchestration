@@ -1,4 +1,3 @@
-
 import io
 import json
 import os
@@ -33,7 +32,9 @@ def load_google_credentials_from_ssm() -> Credentials:
         print("ERROR: GOOGLE_SERVICE_ACCOUNT_SSM_PATH not found in .env")
         sys.exit(1)
 
-    print(f"Fetching Google credentials from SSM: {SSM_PATH} (region={AWS_REGION})...")
+    print(
+        f"Fetching Google credentials from SSM: {SSM_PATH} (region={AWS_REGION})..."
+    )
     ssm = boto3.client("ssm", region_name=AWS_REGION)
 
     try:
@@ -47,11 +48,15 @@ def load_google_credentials_from_ssm() -> Credentials:
     try:
         service_account_info = json.loads(raw_value)
     except json.JSONDecodeError:
-        print("ERROR: SSM parameter value is not valid JSON — check what's stored there.")
+        print(
+            "ERROR: SSM parameter value is not valid JSON — check what's stored there."
+        )
         sys.exit(1)
 
     print("Google credentials loaded from SSM.")
-    return Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
+    return Credentials.from_service_account_info(
+        service_account_info, scopes=SCOPES
+    )
 
 
 def main():
@@ -62,7 +67,9 @@ def main():
     creds = load_google_credentials_from_ssm()
     drive_service = build("drive", "v3", credentials=creds)
     print(f"Authenticated as: {creds.service_account_email}")
-    print("(If you get a 404 below, share the sheet with this email as Viewer.)")
+    print(
+        "(If you get a 404 below, share the sheet with this email as Viewer.)"
+    )
 
     print(f"\nFetching sheet {SPREADSHEET_ID}...")
     request = drive_service.files().export_media(

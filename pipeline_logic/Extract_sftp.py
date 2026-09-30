@@ -76,7 +76,7 @@ def stream_file_to_s3(sftp, session, filename: str, run_date: str) -> str:
 def extract_sftp(run_date: str) -> list:
     """
     Runs the full extraction: connect to RhineOps' SFTP, pull every file
-    found, land each to S3. 
+    found, land each to S3.
     """
     # RHINEOPS_SFTP_HOST
     if not SFTP_HOST:
@@ -88,7 +88,8 @@ def extract_sftp(run_date: str) -> list:
 
     if not S3_BUCKET:
         raise ValueError(
-            "S3_BUCKET not set — refusing to run without a destination bucket")
+            "S3_BUCKET not set — refusing to run without a destination bucket"
+        )
 
     logger.info("Starting SFTP extraction: RhineOps nightly files")
     session = boto3.Session(region_name=AWS_REGION)
@@ -98,7 +99,8 @@ def extract_sftp(run_date: str) -> list:
         filenames = list_remote_files(sftp)
         if not filenames:
             raise ValueError(
-                "No files found on RhineOps SFTP — refusing an empty run")
+                "No files found on RhineOps SFTP — refusing an empty run"
+            )
 
         keys = [
             stream_file_to_s3(sftp, session, f, run_date) for f in filenames
