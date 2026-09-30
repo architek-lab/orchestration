@@ -33,7 +33,8 @@ def load_google_credentials_from_ssm() -> Credentials:
         sys.exit(1)
 
     print(
-        f"Fetching Google credentials from SSM: {SSM_PATH} (region={AWS_REGION})..."
+        f"Fetching Google credentials from SSM: {SSM_PATH} "
+        f"(region={AWS_REGION})..."
     )
     ssm = boto3.client("ssm", region_name=AWS_REGION)
 
@@ -49,7 +50,8 @@ def load_google_credentials_from_ssm() -> Credentials:
         service_account_info = json.loads(raw_value)
     except json.JSONDecodeError:
         print(
-            "ERROR: SSM parameter value is not valid JSON — check what's stored there."
+            "ERROR: SSM parameter value is not valid JSON. "
+            "Check what's stored there."
         )
         sys.exit(1)
 
