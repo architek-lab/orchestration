@@ -1,110 +1,127 @@
+
 import io
 import json
 import logging
-import os
 from datetime import datetime, timezone
 
-import awswrangler as wr
 import boto3
-import pandas as pd
-from dotenv import load_dotenv
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 
-load_dotenv()
+import config
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
 logger = logging.getLogger(__name__)
-
-SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
-SPREADSHEET_ID = os.getenv("PROCUREMENT_SHEET_ID")
-GOOGLE_SERVICE_ACCOUNT_SSM_PATH = os.getenv("GOOGLE_SERVICE_ACCOUNT_SSM_PATH")
-
-S3_BUCKET = os.getenv("S3_BUCKET")
-S3_PREFIX = os.getenv("S3_PROCUREMENT_PREFIX", "raw/google_sheets/procurement")
-AWS_REGION = os.getenv("AWS_DEFAULT_REGION", os.getenv("AWS_REGION"))
 
 
 def load_google_credentials(
     ssm_parameter_path: str, region_name: str, scopes: list
 ) -> Credentials:
-    """Fetch a service-account JSON from AWS SSM and build Credentials.
-    """
+    """Fetch a service-account JSON string from AWS SSM and build a
+    Credentials object (not a string)."""
     ssm = boto3.client("ssm", region_name=region_name)
-    response = ssm.get_parameter(
-        Name=ssm_parameter_path, WithDecryption=True
-    )
+    # WithDecryption unlocks the value when it is stored as a SecureString.
+    response = ssm.get_parameter(Name=ssm_parameter_path, WithDecryption=True)
+    # The parameter holds the key file as text. Turn it into a dictionary.
     service_account_info = json.loads(response["Parameter"]["Value"])
     return Credentials.from_service_account_info(
         service_account_info, scopes=scopes
     )
 
 
-def download_sheet(drive_service, sheet_id: str) -> pd.DataFrame:
+def export_drive_file(
+    drive_service, file_id: str, mime_type: str
+) -> io.BytesIO:
+    """Export a Google file into an in memory buffer (no local file)."""
     request = drive_service.files().export_media(
-        fileId=sheet_id, mimeType="text/csv"
+        fileId=file_id, mimeType=mime_type
     )
     buffer = io.BytesIO()
     downloader = MediaIoBaseDownload(buffer, request)
 
+    # Google sends the file in chunks. Keep asking until it is all there.
     done = False
     while not done:
         _, done = downloader.next_chunk()
 
+    # Rewind so the next reader starts at the beginning of the file.
     buffer.seek(0)
-    return pd.read_csv(buffer, dtype=str, keep_default_na=False)
+    return buffer
 
 
-def extract_google_sheet(run_date: str, debug_print: bool = False) -> list:
+def extract_google_sheet(
+    run_date: str,
+    sheet_id: str | None = None,
+    bucket: str | None = None,
+    prefix: str | None = None,
+    filename: str | None = None,
+    mime_type: str | None = None,
+    ssm_path: str | None = None,
+    region: str | None = None,
+    scopes: list | None = None,
+) -> list:
+    """Authenticate, export the sheet, and stream it straight to S3.
+
+    Every argument except run_date falls back to config.py, so this can be
+    reused for any sheet by passing different values.
+
+    Args:
+        run_date: date of the run as YYYY-MM-DD, used for the S3 folder.
+
+    Returns:
+        A list holding the S3 path of the uploaded file.
     """
-    Runs the full extraction: authenticate, fetch the sheet, land to S3.
-
-    """
-    if not GOOGLE_SERVICE_ACCOUNT_SSM_PATH:
-        logger.warning(
-            "GOOGLE_SERVICE_ACCOUNT_SSM_PATH not set — running "
-            "extract_google_sheet in placeholder mode, nothing "
-            "fetched or landed."
+    try:
+        # Use the argument if it was given, otherwise fall back to config.
+        ssm_path = ssm_path or config.required(
+            "GOOGLE_SERVICE_ACCOUNT_SSM_PATH"
         )
-        return []
+        sheet_id = sheet_id or config.required("PROCUREMENT_SHEET_ID")
+        bucket = bucket or config.required("S3_BUCKET")
+        prefix = prefix or config.S3_PROCUREMENT_PREFIX
+        filename = filename or config.S3_PROCUREMENT_FILENAME
+        mime_type = mime_type or config.PROCUREMENT_EXPORT_MIME_TYPE
+        region = region or config.AWS_REGION
+        scopes = scopes or config.GOOGLE_SCOPES
 
-    if not SPREADSHEET_ID:
-        raise ValueError(
-            "PROCUREMENT_SHEET_ID not set — refusing to run "
-            "without a sheet to pull"
+        logger.info("Starting extraction: Google Sheet")
+
+        # Log in to Google with the key stored in SSM.
+        creds = load_google_credentials(ssm_path, region, scopes)
+        drive_service = build("drive", "v3", credentials=creds)
+        logger.info(
+            "Authenticated to Google as: %s", creds.service_account_email
         )
 
-    if not S3_BUCKET:
-        raise ValueError(
-            "S3_BUCKET not set — refusing to run without a destination bucket")
+        # Download the sheet into memory.
+        buffer = export_drive_file(drive_service, sheet_id, mime_type)
+        size = buffer.getbuffer().nbytes
+        logger.info("Exported sheet: %s bytes", size)
+        # The preview only shows when LOG_LEVEL=DEBUG.
+        logger.debug(
+            "Preview: %s",
+            buffer.getvalue()[:500].decode("utf-8", errors="replace"),
+        )
 
-    logger.info("Starting extraction: procurement Google Sheet")
-    creds = load_google_credentials(
-        GOOGLE_SERVICE_ACCOUNT_SSM_PATH, AWS_REGION, SCOPES
-    )
-    drive_service = build("drive", "v3", credentials=creds)
-    logger.info(f"Authenticated to Google as: {creds.service_account_email}")
+        # Upload to S3. Example key:
+        # raw/google_sheets/procurement/dt=2026-10-04/procurement.csv
+        partition = f"{config.S3_PARTITION_KEY}={run_date}"
+        key = f"{prefix.strip('/')}/{partition}/{filename}"
+        s3 = boto3.client("s3", region_name=region)
+        s3.upload_fileobj(buffer, bucket, key)
 
-    df = download_sheet(drive_service, SPREADSHEET_ID)
-
-    if debug_print:
-        print(f"\nRows: {len(df)}, Columns: {list(df.columns)}\n")
-        print(df.head(10))
-        print()
-
-    s3_path = f"s3://{S3_BUCKET}/{S3_PREFIX}/dt={run_date}/procurement.csv"
-    session = boto3.Session(region_name=AWS_REGION)
-    wr.s3.to_csv(df, path=s3_path, index=False, boto3_session=session)
-    logger.info(f"Landed {len(df)} rows to {s3_path}")
-
-    return [s3_path]
+        s3_path = f"s3://{bucket}/{key}"
+        logger.info("Landed %s", s3_path)
+        return [s3_path]
+    except Exception as exc:
+        # Log one clear line, then re-raise so the caller (for example
+        # Airflow) sees that the run failed.
+        logger.error("Google Sheet extraction failed: %s", exc)
+        raise
 
 
+# Runs only when the file is executed directly, not when it is imported.
 if __name__ == "__main__":
+    config.configure_logging()
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    extract_google_sheet(today, debug_print=True)
+    extract_google_sheet(today)
