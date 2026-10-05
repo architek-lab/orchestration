@@ -2,3 +2,8 @@
 *logs
 *.sh
 venv
+<<<<<<< HEAD
+.env
+*.png
+=======
+>>>>>>> origin/main
