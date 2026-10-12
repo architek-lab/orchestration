@@ -8,18 +8,10 @@ from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 
-from config import (
-    AWS_REGION,
-    GOOGLE_SCOPES,
-    GOOGLE_SERVICE_ACCOUNT_SSM_PATH,
-    PROCUREMENT_EXPORT_MIME_TYPE,
-    PROCUREMENT_SHEET_ID,
-    S3_BUCKET,
-    S3_PARTITION_KEY,
-    S3_PROCUREMENT_FILENAME,
-    S3_PROCUREMENT_PREFIX,
-    configure_logging,
-)
+from config import (AWS_REGION, GOOGLE_SCOPES, GOOGLE_SERVICE_ACCOUNT_SSM_PATH,
+                    PROCUREMENT_EXPORT_MIME_TYPE, PROCUREMENT_SHEET_ID,
+                    S3_BUCKET, S3_PARTITION_KEY, S3_PROCUREMENT_FILENAME,
+                    S3_PROCUREMENT_PREFIX, configure_logging)
 
 logger = logging.getLogger(__name__)
 
