@@ -24,12 +24,10 @@ def configure_logging() -> None:
         logging.getLogger(name).setLevel(logging.WARNING)
 
 
-# AWS
 AWS_REGION = os.getenv("AWS_DEFAULT_REGION", os.getenv("AWS_REGION"))
 S3_BUCKET = os.getenv("S3_BUCKET")
 S3_PARTITION_KEY = os.getenv("S3_PARTITION_KEY", "dt")
 
-# Google Sheets (procurement)
 GOOGLE_SERVICE_ACCOUNT_SSM_PATH = os.getenv("GOOGLE_SERVICE_ACCOUNT_SSM_PATH")
 PROCUREMENT_SHEET_ID = os.getenv("PROCUREMENT_SHEET_ID")
 GOOGLE_SCOPES = os.getenv(
@@ -45,7 +43,6 @@ S3_PROCUREMENT_FILENAME = os.getenv(
     "S3_PROCUREMENT_FILENAME", "procurement.csv"
 )
 
-# SFTP (RhineOps)
 RHINEOPS_SFTP_HOST = os.getenv("RHINEOPS_SFTP_HOST")
 RHINEOPS_SFTP_USERNAME = os.getenv("RHINEOPS_SFTP_USERNAME")
 RHINEOPS_SFTP_PRIVATE_KEY_FILE = os.getenv("RHINEOPS_SFTP_PRIVATE_KEY_FILE")
@@ -53,7 +50,6 @@ SFTP_PORT = int(os.getenv("RHINEOPS_SFTP_PORT", "22"))
 SFTP_REMOTE_DIR = os.getenv("RHINEOPS_SFTP_REMOTE_DIR", "/outbound")
 S3_RAW_SFTP_PREFIX = os.getenv("S3_RAW_SFTP_PREFIX", "raw/sftp").strip("/")
 
-# A file goes to the category whose key appears in its name.
 FILE_CATEGORY_MAP = {
     "shipment": "shipments",
     "quality": "quality_inspections",

@@ -8,22 +8,34 @@ from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 
-from config import (AWS_REGION, GOOGLE_SCOPES, GOOGLE_SERVICE_ACCOUNT_SSM_PATH,
-                    PROCUREMENT_EXPORT_MIME_TYPE, PROCUREMENT_SHEET_ID,
-                    S3_BUCKET, S3_PARTITION_KEY, S3_PROCUREMENT_FILENAME,
-                    S3_PROCUREMENT_PREFIX, configure_logging)
+from config import (
+    AWS_REGION,
+    GOOGLE_SCOPES,
+    GOOGLE_SERVICE_ACCOUNT_SSM_PATH,
+    PROCUREMENT_EXPORT_MIME_TYPE,
+    PROCUREMENT_SHEET_ID,
+    S3_BUCKET,
+    S3_PARTITION_KEY,
+    S3_PROCUREMENT_FILENAME,
+    S3_PROCUREMENT_PREFIX,
+    configure_logging,
+)
 
 logger = logging.getLogger(__name__)
 
 
-def load_service_account_info(ssm_parameter_path: str, region_name: str) -> dict:
+def load_service_account_info(
+    ssm_parameter_path: str, region_name: str
+) -> dict:
     """Fetch the service-account JSON from AWS SSM and return it as a dict."""
     ssm = boto3.client("ssm", region_name=region_name)
     response = ssm.get_parameter(Name=ssm_parameter_path, WithDecryption=True)
     return json.loads(response["Parameter"]["Value"])
 
 
-def export_drive_file(drive_service, file_id: str, mime_type: str) -> io.BytesIO:
+def export_drive_file(
+    drive_service, file_id: str, mime_type: str
+) -> io.BytesIO:
     """Export a Google file into an in-memory buffer."""
     request = drive_service.files().export_media(
         fileId=file_id, mimeType=mime_type
@@ -64,7 +76,6 @@ def extract_google_sheet(run_date: str) -> str:
         )
         logger.info("Exported sheet: %s bytes", buffer.getbuffer().nbytes)
 
-        # raw/google_sheets/procurement/dt=2026-10-04/procurement.csv
         key = (
             f"{S3_PROCUREMENT_PREFIX}/{S3_PARTITION_KEY}={run_date}/"
             f"{S3_PROCUREMENT_FILENAME}"
