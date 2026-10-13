@@ -5,20 +5,11 @@ from datetime import datetime, timezone
 import boto3
 import paramiko
 
-from config import (
-    AWS_REGION,
-    DEFAULT_CATEGORY,
-    FILE_CATEGORY_MAP,
-    RHINEOPS_SFTP_HOST,
-    RHINEOPS_SFTP_PRIVATE_KEY_FILE,
-    RHINEOPS_SFTP_USERNAME,
-    S3_BUCKET,
-    S3_PARTITION_KEY,
-    S3_RAW_SFTP_PREFIX,
-    SFTP_PORT,
-    SFTP_REMOTE_DIR,
-    configure_logging,
-)
+from config import (AWS_REGION, DEFAULT_CATEGORY, FILE_CATEGORY_MAP,
+                    RHINEOPS_SFTP_HOST, RHINEOPS_SFTP_PRIVATE_KEY_FILE,
+                    RHINEOPS_SFTP_USERNAME, S3_BUCKET, S3_PARTITION_KEY,
+                    S3_RAW_SFTP_PREFIX, SFTP_PORT, SFTP_REMOTE_DIR,
+                    configure_logging)
 
 logger = logging.getLogger(__name__)
 
