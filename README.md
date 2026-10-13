@@ -27,3 +27,8 @@
     - Input AWS access key, secret access key and a passphrase to always exec into the profile
     - Confirm authentication: `aws-vault exec architek-orchestration-dev -- aws configure list`
         - You should see `access key` and `secret key` configured
+- Start the vault session by executing it:
+    - `aws-vault exec <profile_name>`
+    - Now you can run the program or script that needs to communicate with AWS, like `python3 app.pyy`.
+      
+  
