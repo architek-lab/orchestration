@@ -87,3 +87,4 @@ def extract_sftp(run_date: str) -> str:
 if __name__ == "__main__":
     configure_logging()
     extract_sftp(datetime.now(timezone.utc).strftime("%Y-%m-%d"))
+

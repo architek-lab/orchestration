@@ -80,3 +80,4 @@ def extract_google_sheet(run_date: str) -> str:
 if __name__ == "__main__":
     configure_logging()
     extract_google_sheet(datetime.now(timezone.utc).strftime("%Y-%m-%d"))
+
