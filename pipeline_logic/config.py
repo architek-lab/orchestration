@@ -48,4 +48,3 @@ FILE_CATEGORY_MAP = {
     "finance": "finance_reconciliation",
 }
 DEFAULT_CATEGORY = "uncategorized"
-
