@@ -15,10 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def connect_sftp(host: str, port: int, username: str, key_file: str):
-    """Log in with a private key.
-
-    Returns the SFTP client and the transport so the caller can close both.
-    """
+    """Log in with a private key. Returns the client and the transport."""
     key = paramiko.RSAKey.from_private_key_file(key_file)
     transport = paramiko.Transport((host, port))
     transport.connect(username=username, pkey=key)
@@ -46,11 +43,7 @@ def list_remote_files(sftp) -> list:
 
 
 def stream_file_to_s3(sftp, s3_client, filename: str, run_date: str) -> str:
-    """Pull a file from SFTP into memory and upload it to S3.
-
-    Returns the S3 path of the uploaded file.
-    """
-    # raw/sftp/shipments/dt=2026-10-04/shipments_01.csv
+    """Pull a file from SFTP into memory and upload it to S3."""
     key = (
         f"{S3_RAW_SFTP_PREFIX}/{categorize_file(filename)}/"
         f"{S3_PARTITION_KEY}={run_date}/{filename}"
@@ -67,14 +60,7 @@ def stream_file_to_s3(sftp, s3_client, filename: str, run_date: str) -> str:
 
 
 def extract_sftp(run_date: str) -> str:
-    """Pull every file from the SFTP server and land each in S3.
-
-    Args:
-        run_date: run date as YYYY-MM-DD, used for the S3 partition.
-
-    Returns:
-        The S3 prefix the files were landed under.
-    """
+    """Land every file from the SFTP server in S3. run_date is YYYY-MM-DD."""
     try:
         logger.info("Starting SFTP extraction")
         s3_client = boto3.client("s3", region_name=AWS_REGION)

@@ -44,14 +44,7 @@ def export_drive_file(
 
 
 def extract_google_sheet(run_date: str) -> str:
-    """Export the procurement sheet and stream it to S3.
-
-    Args:
-        run_date: run date as YYYY-MM-DD, used for the S3 partition.
-
-    Returns:
-        The S3 path of the uploaded file.
-    """
+    """Stream the procurement sheet to S3. run_date is YYYY-MM-DD."""
     try:
         logger.info("Starting extraction: Google Sheet")
 
