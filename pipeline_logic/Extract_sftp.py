@@ -6,7 +6,8 @@ import boto3
 import paramiko
 
 from config import (AWS_REGION, DEFAULT_CATEGORY, FILE_CATEGORY_MAP, S3_BUCKET,
-                    S3_PARTITION_KEY, S3_RAW_SFTP_PREFIX, SFTP, configure_logging)
+                    S3_PARTITION_KEY, S3_RAW_SFTP_PREFIX, SFTP,
+                    configure_logging)
 
 logger = logging.getLogger(__name__)
 
