@@ -5,85 +5,39 @@ from datetime import datetime, timezone
 import boto3
 import paramiko
 
-from config import (AWS_REGION, DEFAULT_CATEGORY, FILE_CATEGORY_MAP,
-                    RHINEOPS_SFTP_HOST, RHINEOPS_SFTP_PRIVATE_KEY_FILE,
-                    RHINEOPS_SFTP_USERNAME, S3_BUCKET, S3_PARTITION_KEY,
-                    S3_RAW_SFTP_PREFIX, SFTP_PORT, SFTP_REMOTE_DIR,
-                    configure_logging)
+from config import (AWS_REGION, DEFAULT_CATEGORY, FILE_CATEGORY_MAP, S3_BUCKET,
+                    S3_PARTITION_KEY, S3_RAW_SFTP_PREFIX, SFTP, configure_logging)
 
 logger = logging.getLogger(__name__)
 
 
-def connect_sftp(host: str, port: int, username: str, key_file: str):
-    """Log in with a private key. Returns the client and the transport."""
-    key = paramiko.RSAKey.from_private_key_file(key_file)
-    transport = paramiko.Transport((host, port))
-    transport.connect(username=username, pkey=key)
-    return paramiko.SFTPClient.from_transport(transport), transport
+def extract_sftp():
+    dt = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    pem = boto3.client("ssm", region_name=AWS_REGION).get_parameter(
+        Name=SFTP["ssm"], WithDecryption=True)["Parameter"]["Value"]
 
+    transport = paramiko.Transport((SFTP["host"], SFTP["port"]))
+    transport.connect(username=SFTP["username"], pkey=paramiko.RSAKey.from_private_key(io.StringIO(pem)))
+    sftp = paramiko.SFTPClient.from_transport(transport)
+    s3 = boto3.client("s3", region_name=AWS_REGION)
 
-def categorize_file(filename: str) -> str:
-    """Return the category whose key appears in the filename."""
-    name = filename.lower()
-    return next(
-        (cat for key, cat in FILE_CATEGORY_MAP.items() if key in name),
-        DEFAULT_CATEGORY,
-    )
-
-
-def list_remote_files(sftp) -> list:
-    """List the files in the remote folder. Fail if it is empty."""
-    files = sftp.listdir(SFTP_REMOTE_DIR)
-    if not files:
-        raise FileNotFoundError(
-            f"No files found in {SFTP_REMOTE_DIR} - refusing an empty run"
-        )
-    logger.info("Found %s files in %s", len(files), SFTP_REMOTE_DIR)
-    return files
-
-
-def stream_file_to_s3(sftp, s3_client, filename: str, run_date: str) -> str:
-    """Pull a file from SFTP into memory and upload it to S3."""
-    key = (
-        f"{S3_RAW_SFTP_PREFIX}/{categorize_file(filename)}/"
-        f"{S3_PARTITION_KEY}={run_date}/{filename}"
-    )
-
-    buffer = io.BytesIO()
-    sftp.getfo(f"{SFTP_REMOTE_DIR}/{filename}", buffer)
-    buffer.seek(0)
-    s3_client.upload_fileobj(buffer, S3_BUCKET, key)
-
-    s3_path = f"s3://{S3_BUCKET}/{key}"
-    logger.info("Landed %s to %s", filename, s3_path)
-    return s3_path
-
-
-def extract_sftp(run_date: str) -> str:
-    """Land every file from the SFTP server in S3. run_date is YYYY-MM-DD."""
     try:
-        logger.info("Starting SFTP extraction")
-        s3_client = boto3.client("s3", region_name=AWS_REGION)
-        sftp, transport = connect_sftp(
-            RHINEOPS_SFTP_HOST,
-            SFTP_PORT,
-            RHINEOPS_SFTP_USERNAME,
-            RHINEOPS_SFTP_PRIVATE_KEY_FILE,
-        )
-
-        try:
-            for name in list_remote_files(sftp):
-                stream_file_to_s3(sftp, s3_client, name, run_date)
-        finally:
-            sftp.close()
-            transport.close()
-
-        return f"s3://{S3_BUCKET}/{S3_RAW_SFTP_PREFIX}"
-    except Exception as exc:
-        logger.error("SFTP extraction failed: %s", exc)
-        raise
+        for name in sftp.listdir():
+            try:
+                buf = io.BytesIO()
+                sftp.getfo(name, buf)  # fails on folders, so they are skipped
+                buf.seek(0)
+                cat = next((c for k, c in FILE_CATEGORY_MAP.items() if k in name.lower()), DEFAULT_CATEGORY)
+                key = f"{S3_RAW_SFTP_PREFIX}/{cat}/{S3_PARTITION_KEY}={dt}/{name}"
+                s3.upload_fileobj(buf, S3_BUCKET, key)
+                logger.info("Landed %s to s3://%s/%s", name, S3_BUCKET, key)
+            except IOError:
+                continue
+    finally:
+        sftp.close()
+        transport.close()
 
 
 if __name__ == "__main__":
     configure_logging()
-    extract_sftp(datetime.now(timezone.utc).strftime("%Y-%m-%d"))
+    extract_sftp()

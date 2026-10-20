@@ -35,11 +35,12 @@ PROCUREMENT_EXPORT_MIME_TYPE = "text/csv"
 S3_PROCUREMENT_PREFIX = "raw/google_sheets/procurement"
 S3_PROCUREMENT_FILENAME = "procurement.csv"
 
-RHINEOPS_SFTP_HOST = os.getenv("RHINEOPS_SFTP_HOST")
-RHINEOPS_SFTP_USERNAME = os.getenv("RHINEOPS_SFTP_USERNAME")
-RHINEOPS_SFTP_PRIVATE_KEY_FILE = os.getenv("RHINEOPS_SFTP_PRIVATE_KEY_FILE")
-SFTP_PORT = 22
-SFTP_REMOTE_DIR = "/outbound"
+SFTP = {
+    "host": "s-d68a304aef57489ab.server.transfer.eu-central-1.amazonaws.com",
+    "port": 22,
+    "username": "nordtextil",
+    "ssm": "/architek/sftp-user/private-key",
+}
 S3_RAW_SFTP_PREFIX = "raw/sftp"
 
 FILE_CATEGORY_MAP = {
