@@ -16,9 +16,10 @@ def extract_sftp():
     dt = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     pem = boto3.client("ssm", region_name=AWS_REGION).get_parameter(
         Name=SFTP["ssm"], WithDecryption=True)["Parameter"]["Value"]
+    pkey = paramiko.RSAKey.from_private_key(io.StringIO(pem))
 
     transport = paramiko.Transport((SFTP["host"], SFTP["port"]))
-    transport.connect(username=SFTP["username"], pkey=paramiko.RSAKey.from_private_key(io.StringIO(pem)))
+    transport.connect(username=SFTP["username"], pkey=pkey)
     sftp = paramiko.SFTPClient.from_transport(transport)
     s3 = boto3.client("s3", region_name=AWS_REGION)
 
@@ -28,8 +29,13 @@ def extract_sftp():
                 buf = io.BytesIO()
                 sftp.getfo(name, buf)  # fails on folders, so they are skipped
                 buf.seek(0)
-                cat = next((c for k, c in FILE_CATEGORY_MAP.items() if k in name.lower()), DEFAULT_CATEGORY)
-                key = f"{S3_RAW_SFTP_PREFIX}/{cat}/{S3_PARTITION_KEY}={dt}/{name}"
+                cat = next(
+                    (c for k, c in FILE_CATEGORY_MAP.items()
+                     if k in name.lower()),
+                    DEFAULT_CATEGORY,
+                )
+                key = (f"{S3_RAW_SFTP_PREFIX}/{cat}/"
+                       f"{S3_PARTITION_KEY}={dt}/{name}")
                 s3.upload_fileobj(buf, S3_BUCKET, key)
                 logger.info("Landed %s to s3://%s/%s", name, S3_BUCKET, key)
             except IOError:
