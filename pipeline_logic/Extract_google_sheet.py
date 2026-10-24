@@ -23,7 +23,9 @@ def get_ssm_parameter(parameter_name: str, region_name: str) -> str:
     return response["Parameter"]["Value"]
 
 
-def export_drive_file(drive_service, file_id: str, mime_type: str) -> io.BytesIO:
+def export_drive_file(
+    drive_service, file_id: str, mime_type: str
+) -> io.BytesIO:
     """Export a Google file into an in-memory buffer."""
     request = drive_service.files().export_media(
         fileId=file_id, mimeType=mime_type
