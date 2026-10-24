@@ -8,38 +8,40 @@ import paramiko
 from config import (AWS_REGION, DEFAULT_CATEGORY, FILE_CATEGORY_MAP, S3_BUCKET,
                     S3_PARTITION_KEY, S3_RAW_SFTP_PREFIX, SFTP,
                     configure_logging)
+from Extract_google_sheet import get_ssm_parameter
 
 logger = logging.getLogger(__name__)
 
 
-def extract_sftp():
-    dt = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    pem = boto3.client("ssm", region_name=AWS_REGION).get_parameter(
-        Name=SFTP["ssm"], WithDecryption=True)["Parameter"]["Value"]
-    pkey = paramiko.RSAKey.from_private_key(io.StringIO(pem))
+def extract_sftp(run_date: str):
+    """Stream every CSV in the SFTP root to S3. run_date is YYYY-MM-DD."""
+    raw_private_key = get_ssm_parameter(SFTP["ssm"], AWS_REGION)
+    private_key = paramiko.Ed25519Key.from_private_key(
+        io.StringIO(raw_private_key)
+    )
 
     transport = paramiko.Transport((SFTP["host"], SFTP["port"]))
-    transport.connect(username=SFTP["username"], pkey=pkey)
+    transport.connect(username=SFTP["username"], pkey=private_key)
     sftp = paramiko.SFTPClient.from_transport(transport)
     s3 = boto3.client("s3", region_name=AWS_REGION)
 
     try:
         for name in sftp.listdir():
-            try:
-                buf = io.BytesIO()
-                sftp.getfo(name, buf)  # fails on folders, so they are skipped
-                buf.seek(0)
-                cat = next(
-                    (c for k, c in FILE_CATEGORY_MAP.items()
-                     if k in name.lower()),
-                    DEFAULT_CATEGORY,
-                )
-                key = (f"{S3_RAW_SFTP_PREFIX}/{cat}/"
-                       f"{S3_PARTITION_KEY}={dt}/{name}")
-                s3.upload_fileobj(buf, S3_BUCKET, key)
-                logger.info("Landed %s to s3://%s/%s", name, S3_BUCKET, key)
-            except IOError:
+            if not name.lower().endswith(".csv"):
                 continue
+
+            category = next(
+                (c for k, c in FILE_CATEGORY_MAP.items() if k in name.lower()),
+                DEFAULT_CATEGORY,
+            )
+            key = (
+                f"{S3_RAW_SFTP_PREFIX}/{category}/"
+                f"{S3_PARTITION_KEY}={run_date}/{name}"
+            )
+
+            with sftp.open(name, "rb") as remote_file:
+                s3.upload_fileobj(remote_file, S3_BUCKET, key)
+            logger.info("Landed %s to s3://%s/%s", name, S3_BUCKET, key)
     finally:
         sftp.close()
         transport.close()
@@ -47,4 +49,4 @@ def extract_sftp():
 
 if __name__ == "__main__":
     configure_logging()
-    extract_sftp()
+    extract_sftp(datetime.now(timezone.utc).strftime("%Y-%m-%d"))
