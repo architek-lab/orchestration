@@ -4,11 +4,11 @@ from datetime import datetime, timezone
 
 import boto3
 import paramiko
+from Extract_google_sheet import get_ssm_parameter
 
 from config import (AWS_REGION, DEFAULT_CATEGORY, FILE_CATEGORY_MAP, S3_BUCKET,
                     S3_PARTITION_KEY, S3_RAW_SFTP_PREFIX, SFTP,
                     configure_logging)
-from Extract_google_sheet import get_ssm_parameter
 
 logger = logging.getLogger(__name__)
 
