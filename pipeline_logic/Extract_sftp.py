@@ -6,9 +6,8 @@ import boto3
 import paramiko
 from Extract_google_sheet import get_ssm_parameter
 
-from config import (AWS_REGION, DEFAULT_CATEGORY, FILE_CATEGORY_MAP, S3_BUCKET,
-                    S3_PARTITION_KEY, S3_RAW_SFTP_PREFIX, SFTP,
-                    configure_logging)
+from config import (AWS_REGION, S3_BUCKET, S3_PARTITION_KEY,
+                    S3_RAW_SFTP_PREFIX, SFTP, configure_logging)
 
 logger = logging.getLogger(__name__)
 
@@ -26,22 +25,16 @@ def extract_sftp(run_date: str):
     s3 = boto3.client("s3", region_name=AWS_REGION)
 
     try:
-        for name in sftp.listdir():
-            if not name.lower().endswith(".csv"):
-                continue
+        csv_files = [f for f in sftp.listdir() if f.lower().endswith(".csv")]
 
-            category = next(
-                (c for k, c in FILE_CATEGORY_MAP.items() if k in name.lower()),
-                DEFAULT_CATEGORY,
-            )
+        for csv_file in csv_files:
             key = (
-                f"{S3_RAW_SFTP_PREFIX}/{category}/"
-                f"{S3_PARTITION_KEY}={run_date}/{name}"
+                f"{S3_RAW_SFTP_PREFIX}/"
+                f"{S3_PARTITION_KEY}={run_date}/{csv_file}"
             )
-
-            with sftp.open(name, "rb") as remote_file:
+            with sftp.open(csv_file, "rb") as remote_file:
                 s3.upload_fileobj(remote_file, S3_BUCKET, key)
-            logger.info("Landed %s to s3://%s/%s", name, S3_BUCKET, key)
+            logger.info("Landed %s to s3://%s/%s", csv_file, S3_BUCKET, key)
     finally:
         sftp.close()
         transport.close()
