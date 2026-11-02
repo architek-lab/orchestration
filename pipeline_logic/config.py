@@ -36,7 +36,7 @@ S3_PROCUREMENT_PREFIX = "raw/google_sheets/procurement"
 S3_PROCUREMENT_FILENAME = "procurement.csv"
 
 SFTP = {
-    "host": "s-d68a304aef57489ab.server.transfer.eu-central-1.amazonaws.com",
+    "host": "s-d33b5c243f79475cb.server.transfer.eu-central-1.amazonaws.com",
     "port": 22,
     "username": "nordtextil",
     "ssm": "/architek/sftp-user/private-key",

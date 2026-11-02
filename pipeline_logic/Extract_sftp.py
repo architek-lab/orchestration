@@ -25,14 +25,14 @@ def extract_sftp(run_date: str):
     s3 = boto3.client("s3", region_name=AWS_REGION)
 
     try:
-        csv_files = [f for f in sftp.listdir() if f.lower().endswith(".csv")]
+        csv_files = [f for f in sftp.listdir("/") if f.lower().endswith(".csv")]
 
         for csv_file in csv_files:
             key = (
                 f"{S3_RAW_SFTP_PREFIX}/"
                 f"{S3_PARTITION_KEY}={run_date}/{csv_file}"
             )
-            with sftp.open(csv_file, "rb") as remote_file:
+            with sftp.open(f"/{csv_file}", "rb") as remote_file:
                 s3.upload_fileobj(remote_file, S3_BUCKET, key)
             logger.info("Landed %s to s3://%s/%s", csv_file, S3_BUCKET, key)
     finally:
