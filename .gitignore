@@ -6,3 +6,4 @@ venv
 *.png
 =======
 >>>>>>> origin/main
+.venv/

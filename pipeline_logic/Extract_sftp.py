@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def extract_sftp(ds: str):
-    """Stream every CSV in the SFTP root to S3, partitioned by the Airflow run date.
+    """Stream every CSV in the SFTP root to S3, partitioned by the run date.
 
     ds is passed in automatically by Airflow (YYYY-MM-DD).
     """
@@ -28,7 +28,9 @@ def extract_sftp(ds: str):
     s3 = boto3.client("s3", region_name=AWS_REGION)
 
     try:
-        csv_files = [f for f in sftp.listdir("/") if f.lower().endswith(".csv")]
+        csv_files = [
+            f for f in sftp.listdir("/") if f.lower().endswith(".csv")
+        ]
 
         for csv_file in csv_files:
             key = (
