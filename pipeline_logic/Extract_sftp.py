@@ -12,8 +12,11 @@ from config import (AWS_REGION, S3_BUCKET, S3_PARTITION_KEY,
 logger = logging.getLogger(__name__)
 
 
-def extract_sftp(run_date: str):
-    """Stream every CSV in the SFTP root to S3. run_date is YYYY-MM-DD."""
+def extract_sftp(ds: str):
+    """Stream every CSV in the SFTP root to S3, partitioned by the Airflow run date.
+
+    ds is passed in automatically by Airflow (YYYY-MM-DD).
+    """
     raw_private_key = get_ssm_parameter(SFTP["ssm"], AWS_REGION)
     private_key = paramiko.Ed25519Key.from_private_key(
         io.StringIO(raw_private_key)
@@ -30,7 +33,7 @@ def extract_sftp(run_date: str):
         for csv_file in csv_files:
             key = (
                 f"{S3_RAW_SFTP_PREFIX}/"
-                f"{S3_PARTITION_KEY}={run_date}/{csv_file}"
+                f"{S3_PARTITION_KEY}={ds}/{csv_file}"
             )
             with sftp.open(f"/{csv_file}", "rb") as remote_file:
                 s3.upload_fileobj(remote_file, S3_BUCKET, key)

@@ -1,18 +1,13 @@
-import sys
-from datetime import timedelta
-from pathlib import Path
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+from datetime import datetime, timedelta
+from Extract_google_sheet import extract_google_sheet
+from Extract_sftp import extract_sftp
 
-import pendulum
-from airflow.sdk import dag, task
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-PIPELINE_LOGIC_DIR = str(PROJECT_ROOT / "pipeline_logic")
-
-
-@dag(
+with DAG(
     dag_id="nordtextil_extract_raw",
+    start_date=datetime(2026, 10, 31),
     schedule="0 4 * * *",
-    start_date=pendulum.datetime(2026, 10, 31, tz="UTC"),
     catchup=False,
     max_active_runs=1,
     default_args={
@@ -21,24 +16,14 @@ PIPELINE_LOGIC_DIR = str(PROJECT_ROOT / "pipeline_logic")
         "retry_delay": timedelta(minutes=5),
     },
     tags=["nordtextil", "extract", "s3"],
-)
-def nordtextil_extract_raw():
-    @task
-    def extract_google_sheet_to_s3(ds=None) -> str:
-        sys.path.insert(0, PIPELINE_LOGIC_DIR)
-        from Extract_google_sheet import extract_google_sheet
+) as dag:
 
-        return extract_google_sheet(ds)
+    PythonOperator(
+        task_id="extract_google_sheet_to_s3",
+        python_callable=extract_google_sheet,
+    )
 
-    @task
-    def extract_sftp_to_s3(ds=None) -> None:
-        sys.path.insert(0, PIPELINE_LOGIC_DIR)
-        from Extract_sftp import extract_sftp
-
-        extract_sftp(ds)
-
-    extract_google_sheet_to_s3()
-    extract_sftp_to_s3()
-
-
-nordtextil_extract_raw()
+    PythonOperator(
+        task_id="extract_sftp_to_s3",
+        python_callable=extract_sftp,
+    )

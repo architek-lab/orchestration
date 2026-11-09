@@ -41,9 +41,12 @@ def export_drive_file(
     return buffer
 
 
-def extract_google_sheet(run_date: str) -> str:
-    """Stream the procurement sheet to S3. run_date is YYYY-MM-DD."""
-    logger.info("Starting extraction: Google Sheet")
+def extract_google_sheet(ds: str) -> str:
+    """Stream the procurement sheet to S3, partitioned by the Airflow run date.
+
+    ds is passed in automatically by Airflow (YYYY-MM-DD).
+    """
+    logger.info("Starting extraction: Google Sheet for %s", ds)
 
     service_account_json = get_ssm_parameter(
         GOOGLE_SERVICE_ACCOUNT_SSM_PATH, AWS_REGION
@@ -59,7 +62,7 @@ def extract_google_sheet(run_date: str) -> str:
     logger.info("Exported sheet: %s bytes", buffer.getbuffer().nbytes)
 
     key = (
-        f"{S3_PROCUREMENT_PREFIX}/{S3_PARTITION_KEY}={run_date}/"
+        f"{S3_PROCUREMENT_PREFIX}/{S3_PARTITION_KEY}={ds}/"
         f"{S3_PROCUREMENT_FILENAME}"
     )
     boto3.client("s3", region_name=AWS_REGION).upload_fileobj(
