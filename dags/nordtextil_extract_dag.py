@@ -1,9 +1,10 @@
 from datetime import datetime, timedelta
 
-from airflow import DAG
-from airflow.operators.python import PythonOperator
-from Extract_google_sheet import extract_google_sheet
-from Extract_sftp import extract_sftp
+from airflow.sdk import DAG
+from airflow.providers.standard.operators.python import PythonOperator
+
+from pipeline_logic.Extract_google_sheet import extract_google_sheet
+from pipeline_logic.Extract_sftp import extract_sftp
 
 with DAG(
     dag_id="nordtextil_extract_raw",
