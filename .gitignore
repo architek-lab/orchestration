@@ -1,9 +1,5 @@
 *cache*
 *logs
 *.sh
-venv
-<<<<<<< HEAD
+*venv
 *.png
-=======
->>>>>>> origin/main
-.venv/
