@@ -1,1 +1,5 @@
-apache-airflow[amazon]
+
+boto3==1.43.108
+google-api-python-client==2.201.0
+paramiko==5.1.0
+apache-airflow[amazon]==3.3.2
