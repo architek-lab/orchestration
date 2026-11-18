@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
-from airflow.sdk import DAG
 from airflow.providers.standard.operators.python import PythonOperator
+from airflow.sdk import DAG
 
 from pipeline_logic.extract_google_sheet import extract_google_sheet
 from pipeline_logic.extract_sftp import extract_sftp

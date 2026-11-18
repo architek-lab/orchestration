@@ -5,10 +5,9 @@ from datetime import datetime, timezone
 import boto3
 import paramiko
 
-from pipeline_logic.Extract_google_sheet import get_ssm_parameter
 from pipeline_logic.config import (AWS_REGION, S3_BUCKET, S3_PARTITION_KEY,
-                                   S3_RAW_SFTP_PREFIX, SFTP,
-                                   configure_logging)
+                                   S3_RAW_SFTP_PREFIX, SFTP, configure_logging)
+from pipeline_logic.Extract_google_sheet import get_ssm_parameter
 
 logger = logging.getLogger(__name__)
 
