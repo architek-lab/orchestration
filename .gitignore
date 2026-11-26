@@ -1,4 +1,5 @@
 *cache*
 *logs
 *.sh
-venv
+*venv
+*.png
